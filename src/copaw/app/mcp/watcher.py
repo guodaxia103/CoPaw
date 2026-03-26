@@ -262,7 +262,7 @@ class MCPConfigWatcher:
     async def _reload_single_client(self, key: str, new_cfg) -> None:
         """Reload a single client with retry tracking."""
         if not getattr(new_cfg, "hot_reload_safe", True):
-            logger.info(
+            logger.debug(
                 "MCPConfigWatcher: client '%s' is marked "
                 "hot_reload_safe=false; skipping in-process reload. "
                 "Restart CoPaw to apply changes.",

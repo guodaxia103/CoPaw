@@ -10,6 +10,7 @@ from typing import Dict, Set
 
 from .exceptions import AgentReloadRequiresRestartError
 from .workspace import Workspace
+from ..config.config import load_agent_config
 from ..config.utils import load_config
 
 logger = logging.getLogger(__name__)
@@ -258,7 +259,8 @@ class MultiAgentManager:
             return False
 
         agent_ref = config.agents.profiles[agent_id]
-        requires_serial_reload = self._requires_serial_reload(agent_ref)
+        agent_config = load_agent_config(agent_id)
+        requires_serial_reload = self._requires_serial_reload(agent_config)
 
         if requires_serial_reload:
             message = (
