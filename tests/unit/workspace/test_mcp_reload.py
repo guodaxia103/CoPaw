@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for MCP hot-reload safety handling."""
+# pylint: disable=protected-access
 
 from types import SimpleNamespace
 

@@ -33,7 +33,7 @@ class MultiAgentManager:
 
     @staticmethod
     def _requires_serial_reload(agent_config) -> bool:
-        """Whether this agent has MCP clients unsafe for zero-downtime reload."""
+        """Whether this agent has MCP clients unsafe for reload."""
         mcp = getattr(agent_config, "mcp", None)
         if not mcp:
             return False
@@ -259,6 +259,15 @@ class MultiAgentManager:
         agent_ref = config.agents.profiles[agent_id]
         requires_serial_reload = self._requires_serial_reload(agent_ref)
 
+        if requires_serial_reload:
+            logger.warning(
+                "Agent %s contains MCP clients marked hot_reload_safe=false. "
+                "In-process reload is disabled for this agent. Restart "
+                "CoPaw to apply changes safely.",
+                agent_id,
+            )
+            return False
+
         # Step 3: Create and start new workspace instance (outside lock)
         # This is the slow part, but doesn't block other agents
         logger.info(f"Creating new workspace instance: {agent_id}")
@@ -283,15 +292,6 @@ class MultiAgentManager:
                     f"Set reusable components for {agent_id}: "
                     f"{list(reusable.keys())}",
                 )
-
-        if requires_serial_reload:
-            logger.warning(
-                "Agent %s contains MCP clients marked hot_reload_safe=false. "
-                "In-process reload is disabled for this agent. Restart "
-                "CoPaw to apply changes safely.",
-                agent_id,
-            )
-            return False
 
         try:
             await new_instance.start()
