@@ -31,6 +31,18 @@ class MultiAgentManager:
         self._cleanup_tasks: Set[asyncio.Task] = set()
         logger.debug("MultiAgentManager initialized")
 
+    @staticmethod
+    def _requires_serial_reload(agent_config) -> bool:
+        """Whether this agent has MCP clients unsafe for zero-downtime reload."""
+        mcp = getattr(agent_config, "mcp", None)
+        if not mcp:
+            return False
+
+        for client in mcp.clients.values():
+            if client.enabled and not getattr(client, "hot_reload_safe", True):
+                return True
+        return False
+
     async def get_agent(self, agent_id: str) -> Workspace:
         """Get agent workspace by ID (lazy loading).
 
@@ -245,6 +257,7 @@ class MultiAgentManager:
             return False
 
         agent_ref = config.agents.profiles[agent_id]
+        requires_serial_reload = self._requires_serial_reload(agent_ref)
 
         # Step 3: Create and start new workspace instance (outside lock)
         # This is the slow part, but doesn't block other agents
@@ -270,6 +283,15 @@ class MultiAgentManager:
                     f"Set reusable components for {agent_id}: "
                     f"{list(reusable.keys())}",
                 )
+
+        if requires_serial_reload:
+            logger.warning(
+                "Agent %s contains MCP clients marked hot_reload_safe=false. "
+                "In-process reload is disabled for this agent. Restart "
+                "CoPaw to apply changes safely.",
+                agent_id,
+            )
+            return False
 
         try:
             await new_instance.start()
